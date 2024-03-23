@@ -9,22 +9,23 @@ import random
 import argparse
 
 from model.RIFE import Model
-from dataset import *
+from dataset import *   
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data.distributed import DistributedSampler
 
 device = torch.device("cuda")
 
-log_path = 'train_log'
+log_path = 'train_log'    # The new model will be saved here
+log_path_original = 'train_log_original'   # The pre-trained model should be placed here
 
 def get_learning_rate(step):
     if step < 2000:
         mul = step / 2000.
-        return 3e-4 * mul
+        return 3e-5 * mul   #was 3e-4
     else:
         mul = np.cos((step - 2000) / (args.epoch * args.step_per_epoch - 2000.) * math.pi) * 0.5 + 0.5
-        return (3e-4 - 3e-6) * mul + 3e-6
+        return (3e-5 - 3e-7) * mul + 3e-7    #was 3e-4, 3e-6
 
 def flow2rgb(flow_map_np):
     h, w, _ = flow_map_np.shape
@@ -40,9 +41,6 @@ def train(model, local_rank):
     if local_rank == 0:
         writer = SummaryWriter('train')
         writer_val = SummaryWriter('validate')
-    else:
-        writer = None
-        writer_val = None
     step = 0
     nr_eval = 0
     dataset = VimeoDataset('train')
@@ -150,6 +148,7 @@ if __name__ == "__main__":
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.benchmark = True
-    model = Model(args.local_rank)
+    model = Model(args.local_rank, arbitrary=True)
+    model.load_model(log_path_original, -1)
+    print('Loaded original model')  
     train(model, args.local_rank)
-        
