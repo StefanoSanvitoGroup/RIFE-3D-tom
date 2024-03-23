@@ -1,9 +1,15 @@
 import os
+import sys
 import cv2
 import torch
 import argparse
 from torch.nn import functional as F
 import warnings
+import numpy as np
+import matplotlib.pyplot as plt
+from skimage import io
+import time
+
 warnings.filterwarnings("ignore")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -12,100 +18,91 @@ if torch.cuda.is_available():
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
 
-parser = argparse.ArgumentParser(description='Interpolation for a pair of images')
-parser.add_argument('--img', dest='img', nargs=2, required=True)
-parser.add_argument('--exp', default=4, type=int)
-parser.add_argument('--ratio', default=0, type=float, help='inference ratio between two images with 0 - 1 range')
-parser.add_argument('--rthreshold', default=0.02, type=float, help='returns image when actual ratio falls in given range threshold')
+parser = argparse.ArgumentParser(description='Interpolation for a series of images')
+parser.add_argument('--in_folder', dest='in_folder', type=str, help='Name of folder with input images')
+parser.add_argument('--add', dest= 'add', default=1, type=int) 
 parser.add_argument('--rmaxcycles', default=8, type=int, help='limit max number of bisectional cycles')
 parser.add_argument('--model', dest='modelDir', type=str, default='train_log', help='directory with trained model files')
-
+parser.add_argument('--out_folder', dest='out_folder', type=str, help='Name of folder to save output images') 
+parser.add_argument('--out_format', dest='out_format', type=str, help='Format of output files')  
 args = parser.parse_args()
 
-try:
-    try:
-        try:
-            from model.RIFE_HDv2 import Model
-            model = Model()
-            model.load_model(args.modelDir, -1)
-            print("Loaded v2.x HD model.")
-        except:
-            from train_log.RIFE_HDv3 import Model
-            model = Model()
-            model.load_model(args.modelDir, -1)
-            print("Loaded v3.x HD model.")
-    except:
-        from model.RIFE_HD import Model
-        model = Model()
-        model.load_model(args.modelDir, -1)
-        print("Loaded v1.x HD model")
-except:
-    from model.RIFE import Model
-    model = Model()
-    model.load_model(args.modelDir, -1)
-    print("Loaded ArXiv-RIFE model")
-model.eval()
-model.device()
+folder_name = args.out_folder
+if not os.path.exists(folder_name):   # If the folder exists, the images are overwritten
+    os.mkdir(folder_name)
 
-if args.img[0].endswith('.exr') and args.img[1].endswith('.exr'):
-    img0 = cv2.imread(args.img[0], cv2.IMREAD_COLOR | cv2.IMREAD_ANYDEPTH)
-    img1 = cv2.imread(args.img[1], cv2.IMREAD_COLOR | cv2.IMREAD_ANYDEPTH)
-    img0 = (torch.tensor(img0.transpose(2, 0, 1)).to(device)).unsqueeze(0)
-    img1 = (torch.tensor(img1.transpose(2, 0, 1)).to(device)).unsqueeze(0)
-
+# Define number of interpolation cycles
+if args.add == 1:
+  args.exp = 1
+elif args.add == 3:
+  args.exp = 2
+elif args.add == 7:
+  args.exp = 3
 else:
-    img0 = cv2.imread(args.img[0], cv2.IMREAD_UNCHANGED)
-    img1 = cv2.imread(args.img[1], cv2.IMREAD_UNCHANGED)
+  print('Error: Number of additional frames not allowed.') 
+  sys.exit()
+
+
+
+# Select model
+try: 
+  from train_log.RIFE_HDv3 import Model
+  model = Model()
+  model.load_model(args.modelDir, -1)
+  print("Loaded HD model.")   # v3.x HD
+except:
+  from model.RIFE import Model
+  model = Model()
+  model.load_model(args.modelDir, -1)
+  print("Loaded m model")
+
+
+# Load files from folder
+input_files = sorted(os.listdir(args.in_folder))
+
+input_files = [os.path.join(args.in_folder, fname) for fname in input_files if not fname.startswith(".")]
+filename = 1
+
+
+for i in range(len(input_files)-1):
+    # Select two consecutive frames
+    img0 = cv2.imread(input_files[i],cv2.IMREAD_COLOR | cv2.IMREAD_ANYDEPTH) 
+    img1 = cv2.imread(input_files[i+1],cv2.IMREAD_COLOR | cv2.IMREAD_ANYDEPTH) 
     img0 = (torch.tensor(img0.transpose(2, 0, 1)).to(device) / 255.).unsqueeze(0)
     img1 = (torch.tensor(img1.transpose(2, 0, 1)).to(device) / 255.).unsqueeze(0)
 
-n, c, h, w = img0.shape
-ph = ((h - 1) // 32 + 1) * 32
-pw = ((w - 1) // 32 + 1) * 32
-padding = (0, pw - w, 0, ph - h)
-img0 = F.pad(img0, padding)
-img1 = F.pad(img1, padding)
+    # Extract format information (use it only if format is not specified)
+    if not args.out_format:
+      args.out_format = input_files[i][-3:]
 
 
-if args.ratio:
-    img_list = [img0]
-    img0_ratio = 0.0
-    img1_ratio = 1.0
-    if args.ratio <= img0_ratio + args.rthreshold / 2:
-        middle = img0
-    elif args.ratio >= img1_ratio - args.rthreshold / 2:
-        middle = img1
-    else:
-        tmp_img0 = img0
-        tmp_img1 = img1
-        for inference_cycle in range(args.rmaxcycles):
-            middle = model.inference(tmp_img0, tmp_img1)
-            middle_ratio = ( img0_ratio + img1_ratio ) / 2
-            if args.ratio - (args.rthreshold / 2) <= middle_ratio <= args.ratio + (args.rthreshold / 2):
-                break
-            if args.ratio > middle_ratio:
-                tmp_img0 = middle
-                img0_ratio = middle_ratio
-            else:
-                tmp_img1 = middle
-                img1_ratio = middle_ratio
-    img_list.append(middle)
-    img_list.append(img1)
-else:
+    # Extract shape information and pad
+    n, c, h, w = img0.shape
+    ph = ((h - 1) // 32 + 1) * 32
+    pw = ((w - 1) // 32 + 1) * 32
+    padding = (0, pw - w, 0, ph - h)
+    img0 = F.pad(img0, padding)
+    img1 = F.pad(img1, padding)
+
+
+    # Image inference
     img_list = [img0, img1]
-    for i in range(args.exp):
+    for k in range(args.exp):
         tmp = []
         for j in range(len(img_list) - 1):
             mid = model.inference(img_list[j], img_list[j + 1])
             tmp.append(img_list[j])
             tmp.append(mid)
-        tmp.append(img1)
+        tmp.append(img1)  
         img_list = tmp
 
-if not os.path.exists('output'):
-    os.mkdir('output')
-for i in range(len(img_list)):
-    if args.img[0].endswith('.exr') and args.img[1].endswith('.exr'):
-        cv2.imwrite('output/img{}.exr'.format(i), (img_list[i][0]).cpu().numpy().transpose(1, 2, 0)[:h, :w], [cv2.IMWRITE_EXR_TYPE, cv2.IMWRITE_EXR_TYPE_HALF])
-    else:
-        cv2.imwrite('output/img{}.png'.format(i), (img_list[i][0] * 255).byte().cpu().numpy().transpose(1, 2, 0)[:h, :w])
+    for f in range(len(img_list)-1): #-1 so it doesn't save the last one (first on the next sequence)
+        if os.path.exists(folder_name + '/img{0:05d}.'.format(filename) + args.out_format):
+          filename = filename + 1
+        cv2.imwrite(folder_name + '/img{0:05d}.'.format(filename) + args.out_format, (img_list[f][0] * 255).byte().cpu().numpy().transpose(1, 2, 0)[:h, :w])
+
+# Save the last frame of the folder
+filename = filename + 1
+cv2.imwrite(folder_name + '/img{0:05d}.'.format(filename) + args.out_format, (img_list[-1][0] * 255).byte().cpu().numpy().transpose(1, 2, 0)[:h, :w])
+
+print('Completed.')
