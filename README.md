@@ -3,7 +3,6 @@
 This project is a modified implementation of [Real-Time Intermediate Flow Estimation for Video Frame Interpolation](https://arxiv.org/abs/2011.06294), developed within a paper that is currently under review.
 More details will be added once the paper will be accepted. 
 
-You may check [this pull request](https://github.com/megvii-research/ECCV2022-RIFE/pull/300) for supporting macOS.
 ## Usage
 
 ### Installation
