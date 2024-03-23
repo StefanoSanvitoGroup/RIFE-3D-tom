@@ -25,7 +25,7 @@ pip3 install -r requirements.txt
 **Image Interpolation**
 
 ```
-python3 inference_imgNEW.py --in_folder '{input_folder}' --add '{num_frames}' --out_folder '{output_folder}' --out_format '{output_format}'
+python3 inference_img.py --in_folder '{input_folder}' --add '{num_frames}' --out_folder '{output_folder}' --out_format '{output_format}'
 ```
 
 Where:
@@ -44,5 +44,5 @@ The dataset used for fine tunining should have the following structure:
 
 Please note that GPU is required.
 ```
-!torchrun train_NEW.py --epoch='{number_of_epochs}' --world_size=1 
+!torchrun train.py --epoch='{number_of_epochs}' --world_size=1 
 ```
