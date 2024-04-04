@@ -37,7 +37,7 @@ Where:
 
 
 You can test the model on your own data or use the test images in demo/input, kindly provided by Cian Gabbett, Luke Doolan and Jonathan Coleman.
-The expected output, i.e. the RIFE-augmented sequence, can be found in demo/output. For this example, we set num_frame=1. The runtime is about 20 seconds for a standard computer.
+The expected output, i.e. the RIFE-augmented sequence, can be found in demo/expected_output. For this example, we set num_frame=1. The runtime is about 20 seconds for a standard computer.
 
 ### Fine Tuning
 Copy the pretrained model to RIFE-3D-tom/train_log_original/, the fine tuned model will be saved in RIFE-3D-tom/train_log/
