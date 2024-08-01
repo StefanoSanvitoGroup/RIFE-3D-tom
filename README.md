@@ -1,7 +1,7 @@
 # Real-Time Intermediate Flow Estimation for 3D tomography
 ## Introduction
 This project is a modified implementation of [Real-Time Intermediate Flow Estimation for Video Frame Interpolation](https://arxiv.org/abs/2011.06294), developed within a paper that is currently under review.
-More details will be added once the paper will be accepted. 
+More details will be added once the paper is be accepted. 
 
 ## Usage
 
@@ -19,7 +19,7 @@ The installation time on a standard laptop is less than 2 minutes.
 
 * Unzip and move the pretrained parameters to RIFE-3D-tom/train_log/
 
-* Please note that other pretrained models are available within the [RIFE](https://github.com/megvii-research/ECCV2022-RIFE) and [PracticalRIFE](https://github.com/hzwer/Practical-RIFE) Github pages
+* Please note that other pretrained models are available within the [RIFE](https://github.com/megvii-research/ECCV2022-RIFE) and [PracticalRIFE](https://github.com/hzwer/Practical-RIFE) Github repositories.
 
 ### Run
 
@@ -43,11 +43,11 @@ The expected output, i.e. the RIFE-augmented sequence, can be found in demo/expe
 Copy the pretrained model to RIFE-3D-tom/train_log_original/, the fine tuned model will be saved in RIFE-3D-tom/train_log/
 
 
-The dataset used for fine tunining should have the following structure:
+The dataset used for fine tuning should have the same structure as the [Vimeo90K dataset](http://toflow.csail.mit.edu).
 ...
 
 
-Please note that GPU is required.
+Please note that GPU is required for fine tuning.
 ```
 !torchrun train.py --epoch='{number_of_epochs}' --world_size=1 
 ```
