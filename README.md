@@ -44,10 +44,15 @@ Copy the pretrained model to RIFE-3D-tom/train_log_original/, the fine tuned mod
 
 
 The dataset used for fine tuning should have the same structure as the [Vimeo90K dataset](http://toflow.csail.mit.edu).
-...
 
 
 Please note that GPU is required for fine tuning.
 ```
 !torchrun train.py --epoch='{number_of_epochs}' --world_size=1 
 ```
+
+## Citation
+
+If you use this code in your research, please cite our paper:
+
+Gambini, L., Gabbett C., Doolan L., Jones L., Coleman J.N., Gilligan P., & Sanvito, S. Video Frame Interpolation Neural Network for 3D Tomography Across Different Length Scales, Under review in Nature Communications (2024)
