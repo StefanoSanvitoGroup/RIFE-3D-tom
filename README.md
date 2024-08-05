@@ -3,6 +3,8 @@
 This project is a modified implementation of [Real-Time Intermediate Flow Estimation for Video Frame Interpolation](https://arxiv.org/abs/2011.06294), developed within a paper that is currently under review.
 More details will be added once the paper is accepted. 
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13228384.svg)](https://doi.org/10.5281/zenodo.13228384)
+
 ## Usage
 
 ### Installation
