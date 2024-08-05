@@ -1,7 +1,7 @@
 # Real-Time Intermediate Flow Estimation for 3D tomography
 ## Introduction
 This project is a modified implementation of [Real-Time Intermediate Flow Estimation for Video Frame Interpolation](https://arxiv.org/abs/2011.06294), developed within a paper that is currently under review.
-More details will be added once the paper is be accepted. 
+More details will be added once the paper is accepted. 
 
 ## Usage
 
